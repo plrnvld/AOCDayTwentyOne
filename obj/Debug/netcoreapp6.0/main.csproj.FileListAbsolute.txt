@@ -1,0 +1,15 @@
+/home/runner/AOCDayTwentyOne/obj/Debug/netcoreapp6.0/main.csproj.AssemblyReference.cache
+/home/runner/AOCDayTwentyOne/obj/Debug/netcoreapp6.0/main.GeneratedMSBuildEditorConfig.editorconfig
+/home/runner/AOCDayTwentyOne/obj/Debug/netcoreapp6.0/main.AssemblyInfoInputs.cache
+/home/runner/AOCDayTwentyOne/obj/Debug/netcoreapp6.0/main.AssemblyInfo.cs
+/home/runner/AOCDayTwentyOne/obj/Debug/netcoreapp6.0/main.csproj.CoreCompileInputs.cache
+/home/runner/AOCDayTwentyOne/bin/Debug/netcoreapp6.0/main
+/home/runner/AOCDayTwentyOne/bin/Debug/netcoreapp6.0/main.deps.json
+/home/runner/AOCDayTwentyOne/bin/Debug/netcoreapp6.0/main.runtimeconfig.json
+/home/runner/AOCDayTwentyOne/bin/Debug/netcoreapp6.0/main.dll
+/home/runner/AOCDayTwentyOne/bin/Debug/netcoreapp6.0/ref/main.dll
+/home/runner/AOCDayTwentyOne/bin/Debug/netcoreapp6.0/main.pdb
+/home/runner/AOCDayTwentyOne/obj/Debug/netcoreapp6.0/main.dll
+/home/runner/AOCDayTwentyOne/obj/Debug/netcoreapp6.0/ref/main.dll
+/home/runner/AOCDayTwentyOne/obj/Debug/netcoreapp6.0/main.pdb
+/home/runner/AOCDayTwentyOne/obj/Debug/netcoreapp6.0/main.genruntimeconfig.cache
