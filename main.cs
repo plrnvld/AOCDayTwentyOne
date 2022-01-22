@@ -20,19 +20,17 @@ class Program
 
             if (turnForPlayer1) 
             {
-                player1Pos += posAddition;
-                player1Pos = player1Pos > 10 ? player1Pos - (player1Pos/10)*10 : player1Pos;
+                player1Pos = NextPos(player1Pos, posAddition);
                 player1Score += player1Pos;
             }
             else 
             {
-                player2Pos += posAddition;
-                player2Pos = player2Pos > 10 ? player2Pos - (player2Pos/10)*10 : player2Pos;
+                player2Pos = NextPos(player2Pos, posAddition);
                 player2Score += player2Pos;
             }
 
             dicePos += 3;
-            dicePos %= 10; // Weird, if I remove this it does not work
+            dicePos %= 100;
             rolls += 3;  
 
             if (rolls/3 < 10 || rolls >= 993 - 12)
@@ -47,6 +45,18 @@ class Program
 
         Console.WriteLine($"Player 1 score: {player1Score}, player 2 score {player2Score}.");
         Console.WriteLine($"Result = {lowestScore} * {rolls} = {lowestScore * rolls}.");
+    }
+
+    static int NextPos(int currentPos, int add)
+    {
+        var sum = currentPos + add;
+        if (sum <= 10)
+            return sum;
+
+        if (sum % 10 == 0)
+            return 10;
+
+        return sum - (sum/10) * 10;
     }
 }
 
