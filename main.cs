@@ -132,7 +132,7 @@ class MovesDictionary
     {
         var key = position.Key;
 
-        if (dict.Contains(key))
+        if (dict.ContainsKey(key))
         {
             throw new Exception($"Dict already contains {key}");
         }
