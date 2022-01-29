@@ -11,7 +11,7 @@ class Program
     {
 
         var start = new Position(0, 0, PLAYER_1_START, PLAYER_2_START, false);
-        var movesDict = new Dictionary<(int, int, int, bool), List<Position>>();
+        var movesDict = new MovesDictionary();
 
         var genPositions = new List<Position>();
         genPositions.Add(start);
@@ -56,7 +56,7 @@ class Position
         Player1Moved = player1moved;
     }
 
-    public (int, int, int, int, bool) Key => (Player1Score, Player2Score, BoardPosPlayer1, BoardPosPlayer2, Player1Moved);
+    public Tuple<int, int, int, int, bool> Key => new Tuple<int, int, int, int, bool>(Player1Score, Player2Score, BoardPosPlayer1, BoardPosPlayer2, Player1Moved);
 
     public (int, int) Scores => (Player1Score, Player2Score);
 
@@ -68,11 +68,13 @@ class Position
     {
         foreach (var move in allowedMoves)
         {
-            var previousPos = PrevPos(BoardPos, move);
-            var prevPlayer1Score = Player1Moved ? Player1Score - BoardPos : Player1Score;
-            var prevPlayer2Score = Player1Moved ? Player2Score : Player2Score - BoardPos;
+            var previousPos = PrevPos(Player1Moved ? BoardPosPlayer1 : BoardPosPlayer2, move);
+            var prevPlayer1Score = Player1Moved ? Player1Score - BoardPosPlayer1 : Player1Score;
+            var prevPlayer2Score = Player1Moved ? Player2Score : Player2Score - BoardPosPlayer2;
+            var prevPosPlayer1 = Player1Moved ? previousPos : BoardPosPlayer1;
+            var prevPosPlayer2 = Player1Moved ? BoardPosPlayer2 : previousPos;
 
-            yield return new Position(prevPlayer1Score, prevPlayer2Score, previousPos, !Player1Moved);          
+            yield return new Position(prevPlayer1Score, prevPlayer2Score, prevPosPlayer1, prevPosPlayer2, !Player1Moved);          
         }
     }
 
@@ -80,11 +82,13 @@ class Position
     {
         foreach (var move in allowedMoves)
         {
-            var nextPos = NextPos(BoardPos, move);
+            var nextPos = NextPos(Player1Moved ? BoardPosPlayer2 : BoardPosPlayer1, move);
             var nextPlayer1Score = Player1Moved ? Player1Score : Player1Score + nextPos;
             var nextPlayer2Score = Player1Moved ? Player2Score + nextPos : Player2Score;
+            var nextPosPlayer1 = Player1Moved ? BoardPosPlayer1 : nextPos;
+            var nextPosPlayer2 = Player1Moved ? nextPos : BoardPosPlayer2;
 
-            yield return new Position(nextPlayer1Score, nextPlayer2Score, nextPos, !Player1Moved);          
+            yield return new Position(nextPlayer1Score, nextPlayer2Score, nextPosPlayer1, nextPosPlayer2, !Player1Moved);          
         }
     }
 
@@ -114,3 +118,28 @@ class Position
         return sum + (tooLow/10 + 1)*10;
     } 
 }
+
+class MovesDictionary
+{
+    Dictionary<Tuple<int, int, int, int, bool>, List<Position>> dict;
+
+    public MovesDictionary()
+    {
+        dict = new Dictionary<Tuple<int, int, int, int, bool>, List<Position>>();
+    }
+
+    public void AddPosition(Position position)
+    {
+        var key = position.Key;
+
+        if (dict.Contains(key))
+        {
+            throw new Exception($"Dict already contains {key}");
+        }
+        else
+        {
+            dict[key] = new List<Position>{ position };
+        }
+    }
+}
+
