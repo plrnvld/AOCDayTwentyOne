@@ -1,39 +1,33 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
 class Program 
 {
+    static int MAX_LEVEL = 30;
+
     static int PLAYER_1_START = 10;
     static int PLAYER_2_START = 9;
 
     public static void Main (string[] args) 
     {
-
         var start = new Position(0, 0, PLAYER_1_START, PLAYER_2_START, false);
-        var movesDict = new MovesDictionary();
-
-        var genPositions = new List<Position>();
-        genPositions.Add(start);
-
-
-        for (var gen = 0; gen < 5; gen++)
+        
+        var movesDict = new MovesDictionary { start };
+        var levelPositions = new List<Position> { start };
+        
+        for (var gen = 0; gen < MAX_LEVEL; gen++)
         {
-
-
+            Console.WriteLine($"gen = {gen}");
+            foreach (var pos in levelPositions)
+                movesDict.AddRange(pos.CreateNextPositions());
+            
+            levelPositions.Clear();
+            levelPositions.AddRange(movesDict.FilterLevel(gen + 1));          
         }
 
-        Console.WriteLine("Fin");
-    }
-
-    static IEnumerable<(int, int)> GetReachableFrom((int, int) score)
-    {
-        return new List<(int, int)>();
-    }
-
-    static IEnumerable<Position> CreatePlayerOneEndPositions()
-    {
-        yield break;
+        Console.WriteLine($"Fin, count = {movesDict.Count()}");
     }
 }
 
@@ -80,6 +74,9 @@ class Position
 
     public IEnumerable<Position> CreateNextPositions()
     {
+        if (IsWinning)
+           yield break;
+
         foreach (var move in allowedMoves)
         {
             var nextPos = NextPos(Player1Moved ? BoardPosPlayer2 : BoardPosPlayer1, move);
@@ -119,7 +116,7 @@ class Position
     } 
 }
 
-class MovesDictionary
+class MovesDictionary : IEnumerable 
 {
     Dictionary<Tuple<int, int, int, int, bool>, List<Position>> dict;
 
@@ -128,18 +125,38 @@ class MovesDictionary
         dict = new Dictionary<Tuple<int, int, int, int, bool>, List<Position>>();
     }
 
-    public void AddPosition(Position position)
+    public IEnumerator GetEnumerator()
+    {
+        return dict.GetEnumerator();
+    }
+
+    public void Add(Position position)
     {
         var key = position.Key;
 
         if (dict.ContainsKey(key))
-        {
-            throw new Exception($"Dict already contains {key}");
-        }
+            dict[key].Add(position);
         else
-        {
             dict[key] = new List<Position>{ position };
+    }
+
+    public void AddRange(IEnumerable<Position> positions)
+    {
+        foreach (var pos in positions)
+            Add(pos);
+    }
+
+    public IEnumerable<Position> FilterLevel(int maxLevel)
+    {
+        foreach (var (key, value) in dict)
+        {
+            var (score1, score2, _, _, _) = key;
+            if (Math.Max(score1, score2) == maxLevel)
+                foreach (var pos in value)
+                    yield return pos;
         }
     }
+
+    public int Count() => dict.Values.SelectMany(x => x).Count();
 }
 
