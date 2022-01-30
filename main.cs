@@ -124,9 +124,6 @@ class Position
                     
                     var result = new Position(nextPlayer1Score, Player2Score, nextPosPlayer1, BoardPosPlayer2, true);
 
-                    if (result.Key == (21, 14, 9, 9, true))
-                        Console.WriteLine($"Winning {result.Key} added from {this.Key} with move {move}");
-
                     yield return result;
                 }      
             }
@@ -240,7 +237,11 @@ class MovesDictionary : IEnumerable
             return 0;
         }
 
-        return reachablePrevKeys.Select(key => CountWorldsForKey(key, startPos)).Aggregate((a, x) => a * x);
+        var separateWorlds = reachablePrevKeys.Select(key => CountWorldsForKey(key, startPos));
+
+        Console.WriteLine($"      Separate worlds: {string.Join(",", separateWorlds)}");
+
+        return separateWorlds.Aggregate((a, x) => a * x);
 
         long CountWorldsForKey((int, int, int, int, bool) key, Position startPos)
         {
