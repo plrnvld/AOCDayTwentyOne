@@ -1,8 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "e3aMZkKoz6IpY02++QOAUfu6VOoEvO+0U4VnYiyEn/h2R+r5PLTkJQknqwGdBP1h3UdcKnrwpRIpiqPBQAfolw==",
+  "dgSpecHash": "Kr3aFm3Pr9ZSflATrD684WKSMVCdyO201yBaUTB4XMuu50T3K6VXHaxCnXTKnkIDlK/H+w5hXEF/t3HqSNviNw==",
   "success": true,
   "projectFilePath": "/home/runner/AOCDayTwentyOne/main.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "/home/runner/.nuget/packages/system.valuetuple/4.5.0/system.valuetuple.4.5.0.nupkg.sha512"
+  ],
   "logs": []
 }
