@@ -41,7 +41,11 @@ class Program
         long sumWins1 = 0;
         long sumWins2 = 0;
 
-        foreach (var win in  movesDict.WinningPositions)
+        var winningPositions = movesDict.WinningPositions;
+
+        Console.WriteLine($"{winningPositions.Count()} winning positions in total");
+
+        foreach (var win in winningPositions)
         {
             var (wins1, wins2) = movesDict.CountWinWorlds(win, start);
             sumWins1 += wins1;
