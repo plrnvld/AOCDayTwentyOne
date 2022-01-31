@@ -37,11 +37,18 @@ class Program
         }
         */
 
-        var firstWin = movesDict.WinningPositions.First();
-        var result = movesDict.CountWinWorlds(firstWin, start);
-        Console.WriteLine($"First win: {result}");
 
-        Console.WriteLine($"Fin, count = {movesDict.Count()}");
+        long sumWins1 = 0;
+        long sumWins2 = 0;
+
+        foreach (var win in  movesDict.WinningPositions)
+        {
+            var (wins1, wins2) = movesDict.CountWinWorlds(win, start);
+            sumWins1 += wins1;
+            sumWins2 += wins2;
+        }
+
+        Console.WriteLine($"Fin, wins 1 = {sumWins1}, wins 2 = {sumWins2}");
     }
 }
 
@@ -214,17 +221,17 @@ class MovesDictionary : IEnumerable
 
     long CountReachableWorlds(Position pos, Position startPos)
     {
-        Console.WriteLine($"  {pos.Key} => counting reachable worlds");
+        // Console.WriteLine($"  {pos.Key} => counting reachable worlds");
 
         if (!dict.ContainsKey(pos.Key))
         {   
-            Console.WriteLine($"    Pos {pos.Key} not in dict");
+            // Console.WriteLine($"    Pos {pos.Key} not in dict");
             return 0;
         }
 
         if (pos.IsEqualTo(startPos))
         {
-            Console.WriteLine($"    Pos {pos.Key} is equal to start");
+            // Console.WriteLine($"    Pos {pos.Key} is equal to start");
             return 1;
         }
 
@@ -233,13 +240,14 @@ class MovesDictionary : IEnumerable
         if (!reachablePrevKeys.Any())
         {
             var allKeysInfo = string.Join(" - ", pos.PreviousKeys.Select(k => k.ToString()));
-            Console.WriteLine($"    {pos.Key} => nothing reachable, all prevs: {allKeysInfo}");
+            // Console.WriteLine($"    {pos.Key} => nothing reachable, all prevs: {allKeysInfo}");
             return 0;
         }
 
         var separateWorlds = reachablePrevKeys.Select(key => CountWorldsForKey(key, startPos));
 
-        Console.WriteLine($"      Separate worlds: {string.Join(",", separateWorlds)}");
+        if (separateWorlds.Count() > 1)
+            Console.WriteLine($"      Separate worlds: {string.Join(",", separateWorlds)}");
 
         return separateWorlds.Aggregate((a, x) => a * x);
 
