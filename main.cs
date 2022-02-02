@@ -5,7 +5,7 @@ using System.Linq;
 
 class Program 
 {
-    static int MAX_LEVEL = 30;
+    static int MAX_LEVEL = 32;
 
     // static int PLAYER_1_START = 10;
     // static int PLAYER_2_START = 9;
@@ -22,37 +22,38 @@ class Program
         for (var gen = 0; gen <= MAX_LEVEL; gen++)
         {
             Console.WriteLine($"Calculating gen = {gen}");
+
+            if (gen == 20)
+            {
+                Console.WriteLine($"Level positions for gen 20: {string.Join(" - ", levelPositions.Select(p => p.Key))}");
+            }
+
             foreach (var pos in levelPositions)
+            {
+                var (score1, score2, pos1, pos2, _) = pos.Key;
+                if ((score1, score2, pos1, pos2) == (20, 15, 9, 3))
+                {
+                    Console.WriteLine($"  > Encountered {pos.Key}, next positions {string.Join(" - ", pos.NextPositions.Select(p => p.Key))}");
+
+                }
+
                 movesDict.AddRange(pos.NextPositions);
+            }
             
             levelPositions.Clear();
-            levelPositions.AddRange(movesDict.FilterLevel(gen + 1));          
+            levelPositions.AddRange(movesDict.FilterLevel(gen + 1).Select(n => n.Position));          
         }
 
-        /*
         for (var gen = MAX_LEVEL; gen >= 0; gen--)
         {
-            var winning = movesDict.FilterLevel(gen).Where(p => p.IsWinning);
-            Console.WriteLine($"At gen {gen} => winning {winning.Count()}");         
-        }
-        */
-
-
-        long sumWins1 = 0;
-        long sumWins2 = 0;
-
-        var winningPositions = movesDict.WinningPositions;
-
-        Console.WriteLine($"{winningPositions.Count()} winning positions in total");
-
-        foreach (var win in winningPositions)
-        {
-            var (wins1, wins2) = movesDict.CountWinWorlds(win, start);
-            sumWins1 += wins1;
-            sumWins2 += wins2;
+            var genNodes = movesDict.FilterLevel(gen);
+            foreach (var node in genNodes)
+                node.UpdateWorldCount();
         }
 
-        Console.WriteLine($"Fin, wins 1 = {sumWins1}, wins 2 = {sumWins2}");
+        var startNode = movesDict.FilterLevel(0).First();
+
+        Console.WriteLine($"Fin, start node knows {startNode.WorldCount} worlds");
     }
 }
 
@@ -175,11 +176,11 @@ class Position
 
 class MovesDictionary : IEnumerable 
 {
-    Dictionary<(int, int, int, int, bool), List<Position>> dict;
+    Dictionary<(int, int, int, int, bool), PositionNode> dict;
 
     public MovesDictionary()
     {
-        dict = new Dictionary<(int, int, int, int, bool), List<Position>>();
+        dict = new Dictionary<(int, int, int, int, bool), PositionNode>();
     }
 
     public IEnumerator GetEnumerator() => dict.GetEnumerator();
@@ -189,9 +190,9 @@ class MovesDictionary : IEnumerable
         var key = position.Key;
 
         if (dict.ContainsKey(key))
-            dict[key].Add(position);
+            dict[key].IncrementCounter();
         else
-            dict[key] = new List<Position>{ position };
+            dict[key] = new PositionNode(position, this);
     }
 
     public void AddRange(IEnumerable<Position> positions)
@@ -200,18 +201,22 @@ class MovesDictionary : IEnumerable
             Add(pos);
     }
 
-    public IEnumerable<Position> FilterLevel(int maxLevel)
+    public PositionNode GetNode(Position pos)
+    {
+        return dict[pos.Key];
+    }
+
+    public IEnumerable<PositionNode> FilterLevel(int maxLevel)
     {
         foreach (var (key, value) in dict)
         {
             var (score1, score2, _, _, _) = key;
             if (Math.Max(score1, score2) == maxLevel)
-                foreach (var pos in value)
-                    yield return pos;
+                yield return value;
         }
     }
 
-    public IEnumerable<Position> WinningPositions => AllPositions.Where(p => p.IsWinning);
+    public IEnumerable<Position> WinningPositions => AllNodes.Select(n => n.Position).Where(p => p.IsWinning);
 
     public (long, long) CountWinWorlds(Position pos, Position startPos)
     {
@@ -257,14 +262,80 @@ class MovesDictionary : IEnumerable
 
         long CountWorldsForKey((int, int, int, int, bool) key, Position startPos)
         {
-            var values = dict[key];
-
-            return CountReachableWorlds(values.First(), startPos) * values.Count();
+            var node = dict[key];
+            return CountReachableWorlds(node.Position, startPos) * node.Counter;
         }
     }
 
-    public int Count() => AllPositions.Count();
+    public int Count() => AllNodes.Count();
 
-    IEnumerable<Position> AllPositions => dict.Values.SelectMany(x => x);
+    IEnumerable<PositionNode> AllNodes => dict.Values;
+}
+
+class PositionNode
+{
+    public long Counter { get; private set; }
+    public Position Position { get; }
+    public (long, long) Wins { get; private set; }
+    public long WorldCount { get; private set; }
+
+    MovesDictionary dict;
+
+    public PositionNode(Position pos, MovesDictionary dict)
+    {
+        Position = pos;
+        Counter = 1;
+        Wins = (0, 0);
+        WorldCount = 1;
+
+        this.dict = dict;
+    }
+
+    public void IncrementCounter()
+    {
+        Counter++;
+    }
+
+    public void UpdateWorldCount()
+    {
+        if (Position.IsWinning)
+            return;
+
+        Console.WriteLine($"Current pos {Position.Key}, next positions {string.Join(" - ", Position.NextPositions.Select(p => p.Key))}");
+
+        var nextNodes = Position.NextPositions.Select(dict.GetNode).ToList();
+
+        WorldCount = nextNodes.Count() * nextNodes.Select(n => n.WorldCount).Aggregate((a, x) => a * x) * Counter;        
+    }
+
+    public void CollectWins(IEnumerable<PositionNode> reachablePositionNodes)
+    {
+        (long, long) SumTups((long, long) agg, (long, long) next)
+        {
+            var (agg1, agg2) = agg;
+            var (next1, next2) = next;
+            return (agg1 + next1, agg2 + next2);
+        }
+
+        var (sumWins1, sumWins2) = reachablePositionNodes.Select(p => p.Wins).Aggregate<(long, long), (long, long)>((0, 0), SumTups);
+
+        Wins = (sumWins1 * Counter, sumWins2 * Counter);
+    }
+
+    public void RecordPlayer1Win()
+    {
+        if (Wins != (0, 0))
+            throw new Exception($"Not possible for {Wins}");
+
+        Wins = (1, 0);
+    }
+
+    public void RecordPlayer2Win()
+    {
+        if (Wins != (0, 0))
+            throw new Exception($"Not possible for {Wins}");
+
+        Wins = (1, 0);
+    }
 }
 
