@@ -18,14 +18,15 @@ class Program
         
         var movesDict = new MovesDictionary { start };
         var levelPositions = new List<Position> { start };
+        var sameLevelNextPositions = new List<Position>();
         
         for (var gen = 0; gen <= MAX_LEVEL; gen++)
         {
             Console.WriteLine($"Calculating gen = {gen}");
 
-            if (gen == 20)
+            if (gen == 20 || gen == 12)
             {
-                Console.WriteLine($"Level positions for gen 20: {string.Join(" - ", levelPositions.Select(p => p.Key))}");
+                Console.WriteLine($"Level positions for gen {gen}: {string.Join(" - ", levelPositions.Select(p => p.Key))}");
             }
 
             foreach (var pos in levelPositions)
@@ -37,10 +38,15 @@ class Program
 
                 }
 
-                movesDict.AddRange(pos.NextPositions);
+                var nextPositions = pos.NextPositions;
+                sameLevelNextPositions.AddRange(nextPositions.Where(p => p.Level == gen));
+
+                movesDict.AddRange(nextPositions);
             }
             
             levelPositions.Clear();
+            levelPositions.AddRange(sameLevelNextPositions);
+            sameLevelNextPositions.Clear();
             levelPositions.AddRange(movesDict.FilterLevel(gen + 1).Select(n => n.Position));          
         }
 
@@ -79,6 +85,8 @@ class Position
     }
 
     public (int, int, int, int, bool) Key => (Player1Score, Player2Score, BoardPosPlayer1, BoardPosPlayer2, Player1Moved);
+
+    public int Level => Math.Max(Player1Score, Player2Score);
 
     public (int, int) Scores => (Player1Score, Player2Score);
 
@@ -301,7 +309,7 @@ class PositionNode
         if (Position.IsWinning)
             return;
 
-        Console.WriteLine($"Current pos {Position.Key}, next positions {string.Join(" - ", Position.NextPositions.Select(p => p.Key))}");
+        // Console.WriteLine($"Current pos {Position.Key}, next positions {string.Join(" - ", Position.NextPositions.Select(p => p.Key))}");
 
         var nextNodes = Position.NextPositions.Select(dict.GetNode).ToList();
 
