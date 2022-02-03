@@ -5,7 +5,7 @@ using System.Linq;
 
 class Program 
 {
-    static int MAX_LEVEL = 32;
+    static int MAX_LEVEL = 50;
 
     // static int PLAYER_1_START = 10;
     // static int PLAYER_2_START = 9;
@@ -18,48 +18,37 @@ class Program
         
         var movesDict = new MovesDictionary { start };
         var levelPositions = new List<Position> { start };
-        var sameLevelNextPositions = new List<Position>();
         
-        for (var gen = 0; gen <= MAX_LEVEL; gen++)
+        for (var level = 0; level <= MAX_LEVEL; level++)
         {
-            Console.WriteLine($"Calculating gen = {gen}");
+            Console.WriteLine($"Calculating level = {level}");
 
-            if (gen == 20 || gen == 12)
+            while (levelPositions.Any())
             {
-                Console.WriteLine($"Level positions for gen {gen}: {string.Join(" - ", levelPositions.Select(p => p.Key))}");
-            }
-
-            foreach (var pos in levelPositions)
-            {
-                var (score1, score2, pos1, pos2, _) = pos.Key;
-                if ((score1, score2, pos1, pos2) == (20, 15, 9, 3))
-                {
-                    Console.WriteLine($"  > Encountered {pos.Key}, next positions {string.Join(" - ", pos.NextPositions.Select(p => p.Key))}");
-
-                }
+                var pos = levelPositions.First();
+                levelPositions.RemoveAt(0);
 
                 var nextPositions = pos.NextPositions;
-                sameLevelNextPositions.AddRange(nextPositions.Where(p => p.Level == gen));
-
+                
                 movesDict.AddRange(nextPositions);
             }
             
-            levelPositions.Clear();
-            levelPositions.AddRange(sameLevelNextPositions);
-            sameLevelNextPositions.Clear();
-            levelPositions.AddRange(movesDict.FilterLevel(gen + 1).Select(n => n.Position));          
+            levelPositions.AddRange(movesDict.FilterLevel(level + 1).Select(n => n.Position));          
         }
 
-        for (var gen = MAX_LEVEL; gen >= 0; gen--)
+        for (var level = MAX_LEVEL; level >= 0; level--)
         {
-            var genNodes = movesDict.FilterLevel(gen);
-            foreach (var node in genNodes)
+            Console.WriteLine($"Counting world for level {level}");
+
+            var levelNodes = movesDict.FilterLevel(level);
+
+            foreach (var node in levelNodes)
                 node.UpdateWorldCount();
         }
 
         var startNode = movesDict.FilterLevel(0).First();
 
-        Console.WriteLine($"Fin, start node knows {startNode.WorldCount} worlds");
+        Console.WriteLine($"Fin, start node knows {startNode.WorldCount} worlds with {movesDict.Count()} nodes.");
     }
 }
 
@@ -86,7 +75,7 @@ class Position
 
     public (int, int, int, int, bool) Key => (Player1Score, Player2Score, BoardPosPlayer1, BoardPosPlayer2, Player1Moved);
 
-    public int Level => Math.Max(Player1Score, Player2Score);
+    public int Level => Player1Score + Player2Score;
 
     public (int, int) Scores => (Player1Score, Player2Score);
 
@@ -218,8 +207,7 @@ class MovesDictionary : IEnumerable
     {
         foreach (var (key, value) in dict)
         {
-            var (score1, score2, _, _, _) = key;
-            if (Math.Max(score1, score2) == maxLevel)
+            if (value.Position.Level == maxLevel)
                 yield return value;
         }
     }
@@ -238,26 +226,17 @@ class MovesDictionary : IEnumerable
 
     long CountReachableWorlds(Position pos, Position startPos)
     {
-        // Console.WriteLine($"  {pos.Key} => counting reachable worlds");
-
-        if (!dict.ContainsKey(pos.Key))
-        {   
-            // Console.WriteLine($"    Pos {pos.Key} not in dict");
+        if (!dict.ContainsKey(pos.Key))  
             return 0;
-        }
 
         if (pos.IsEqualTo(startPos))
-        {
-            // Console.WriteLine($"    Pos {pos.Key} is equal to start");
             return 1;
-        }
-
+        
         var reachablePrevKeys = pos.PreviousKeys.Where(dict.ContainsKey);
 
         if (!reachablePrevKeys.Any())
         {
             var allKeysInfo = string.Join(" - ", pos.PreviousKeys.Select(k => k.ToString()));
-            // Console.WriteLine($"    {pos.Key} => nothing reachable, all prevs: {allKeysInfo}");
             return 0;
         }
 
@@ -294,7 +273,7 @@ class PositionNode
         Position = pos;
         Counter = 1;
         Wins = (0, 0);
-        WorldCount = 1;
+        WorldCount = 0;
 
         this.dict = dict;
     }
@@ -304,16 +283,27 @@ class PositionNode
         Counter++;
     }
 
-    public void UpdateWorldCount()
+    public bool UpdateWorldCount()
     {
-        if (Position.IsWinning)
-            return;
+        var nextPositions = Position.NextPositions.ToList();
 
-        // Console.WriteLine($"Current pos {Position.Key}, next positions {string.Join(" - ", Position.NextPositions.Select(p => p.Key))}");
+        if (!nextPositions.Any())
+        {
+            WorldCount = 1;
+            return true;
+        }
 
-        var nextNodes = Position.NextPositions.Select(dict.GetNode).ToList();
+        var nextNodes = nextPositions.Select(dict.GetNode);
+        var nextCounts = nextNodes.Select(n => n.WorldCount);
+        if (nextCounts.Any(c => c == 0))
+            return false;
 
-        WorldCount = nextNodes.Count() * nextNodes.Select(n => n.WorldCount).Aggregate((a, x) => a * x) * Counter;        
+        // ########### What to do??
+        WorldCount = (long)Math.Pow(nextCounts.Sum(), Counter);
+
+        var sum = string.Join(" + ", nextNodes.Select(n => n.WorldCount));
+        Console.WriteLine($"  World count {Position.Key}: ({sum}) * {Counter} = {WorldCount}");
+        return true;
     }
 
     public void CollectWins(IEnumerable<PositionNode> reachablePositionNodes)
