@@ -9,7 +9,7 @@ class Program
 
     // static int PLAYER_1_START = 10;
     // static int PLAYER_2_START = 9;
-    static int PLAYER_1_START = 4;
+    static int PLAYER_1_START = 4; // Total 786,316,482,957,123 worlds
     static int PLAYER_2_START = 8;
 
     public static void Main (string[] args) 
