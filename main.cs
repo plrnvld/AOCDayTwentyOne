@@ -12,14 +12,16 @@ class Program
     static int PLAYER_1_START = 4; // Total 786,316,482,957,123 worlds
     static int PLAYER_2_START = 8;
 
+    static IEnumerable<int> allLevels = Enumerable.Range(0, MAX_LEVEL + 1);
+
     public static void Main (string[] args) 
     {
         var start = new Position(0, 0, PLAYER_1_START, PLAYER_2_START, false);
         
         var movesDict = new MovesDictionary { start };
         var levelPositions = new List<Position> { start };
-        
-        for (var level = 0; level <= MAX_LEVEL; level++)
+
+        foreach (var level in allLevels)
         {
             Console.WriteLine($"Calculating level = {level}");
 
@@ -36,7 +38,7 @@ class Program
             levelPositions.AddRange(movesDict.FilterLevel(level + 1).Select(n => n.Position));          
         }
 
-        for (var level = MAX_LEVEL; level >= 0; level--)
+        foreach (var level in allLevels)
         {
             Console.WriteLine($"Counting world for level {level}");
 
@@ -85,10 +87,13 @@ class Position
 
     public bool Player2Wins => Player2Score >= WINNING_SCORE;
 
-    public IEnumerable<(int, int, int, int, bool)> PreviousKeys
+    public IEnumerable<(int, int, int, int, bool)> PrevKeys
     {
         get
         {
+            if (Player1Score == 0 && Player2Score == 0)
+                yield break;
+
             foreach (var move in allowedMoves)
             {
                 if (Player1Moved)
@@ -200,8 +205,14 @@ class MovesDictionary : IEnumerable
 
     public PositionNode GetNode(Position pos)
     {
-        return dict[pos.Key];
+        return GetNode(pos.Key);
     }
+
+    public PositionNode GetNode((int, int, int, int, bool) key)
+    {
+        return dict.ContainsKey(key) ? dict[key] : null;        
+    }
+
 
     public IEnumerable<PositionNode> FilterLevel(int maxLevel)
     {
@@ -212,7 +223,7 @@ class MovesDictionary : IEnumerable
         }
     }
 
-    public IEnumerable<Position> WinningPositions => AllNodes.Select(n => n.Position).Where(p => p.IsWinning);
+    public IEnumerable<PositionNode> WinningNodes => AllNodes.Where(n => n.Position.IsWinning);
 
     public int Count() => AllNodes.Count();
 
@@ -224,10 +235,9 @@ class PositionNode
     public long Counter { get; private set; }
     public Position Position { get; }
     public (long, long) Wins { get; private set; }
-    long WorldCount { get; set; }
     public long WorldCountMultiplied => WorldCount * Counter;
 
-
+    long WorldCount { get; set; }
     MovesDictionary dict;
 
     public PositionNode(Position pos, MovesDictionary dict)
@@ -245,29 +255,25 @@ class PositionNode
         Counter++;
     }
 
-    public bool UpdateWorldCount()
+    public void UpdateWorldCount()
     {
-        var nextPositions = Position.NextPositions.ToList();
+        var prevKeys = Position.PrevKeys;
+        var prevNodes = prevKeys.Select(dict.GetNode).Where(n => n != null);
 
-        if (!nextPositions.Any())
+        if (!prevNodes.Any())
         {
             WorldCount = 1;
-            return true;
+            return;
         }
 
-        var nextNodes = nextPositions.Select(dict.GetNode);
-        var nextCounts = nextNodes.Select(n => n.WorldCount);
-        if (nextCounts.Any(c => c == 0))
-            return false;
-
-        var nextCountsMultiplied = nextNodes.Select(n => n.WorldCountMultiplied);
-
         // ########### What to do??
-        WorldCount = nextCountsMultiplied.Sum() * 9;
+        WorldCount += prevNodes.Sum(n => n.WorldCount) * Counter;
 
-        var sum = string.Join(" + ", nextCountsMultiplied);
-        Console.WriteLine($"  World count {Position.Key}: ({sum}) * 3 = {WorldCount * 3}");
-        return true;
+        var sum = string.Join(" + ", prevNodes.Select(n => n.WorldCount));
+
+        var winText = Position.IsWinning ? "   => Winning!" : "";
+
+        Console.WriteLine($"  World count {Position.Key}: ({sum}) * {Counter} = {WorldCount}{winText}");
     }
 
     public void CollectWins(IEnumerable<PositionNode> reachablePositionNodes)
