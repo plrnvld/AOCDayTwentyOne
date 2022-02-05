@@ -48,7 +48,7 @@ class Program
 
         var startNode = movesDict.FilterLevel(0).First();
 
-        Console.WriteLine($"Fin, start node knows {startNode.WorldCount} worlds with {movesDict.Count()} nodes.");
+        Console.WriteLine($"Fin, start node knows {startNode.WorldCountMultiplied} worlds with {movesDict.Count()} nodes.");
     }
 }
 
@@ -214,46 +214,6 @@ class MovesDictionary : IEnumerable
 
     public IEnumerable<Position> WinningPositions => AllNodes.Select(n => n.Position).Where(p => p.IsWinning);
 
-    public (long, long) CountWinWorlds(Position pos, Position startPos)
-    {
-        if (!pos.IsWinning)
-            throw new Exception($"Not winning: {pos}");
-        
-        var worldsCount = CountReachableWorlds(pos, startPos);
-
-        return pos.Player1Wins ? (worldsCount, 0) : (0, worldsCount);
-    }
-
-    long CountReachableWorlds(Position pos, Position startPos)
-    {
-        if (!dict.ContainsKey(pos.Key))  
-            return 0;
-
-        if (pos.IsEqualTo(startPos))
-            return 1;
-        
-        var reachablePrevKeys = pos.PreviousKeys.Where(dict.ContainsKey);
-
-        if (!reachablePrevKeys.Any())
-        {
-            var allKeysInfo = string.Join(" - ", pos.PreviousKeys.Select(k => k.ToString()));
-            return 0;
-        }
-
-        var separateWorlds = reachablePrevKeys.Select(key => CountWorldsForKey(key, startPos));
-
-        if (separateWorlds.Count() > 1)
-            Console.WriteLine($"      Separate worlds: {string.Join(",", separateWorlds)}");
-
-        return separateWorlds.Aggregate((a, x) => a * x);
-
-        long CountWorldsForKey((int, int, int, int, bool) key, Position startPos)
-        {
-            var node = dict[key];
-            return CountReachableWorlds(node.Position, startPos) * node.Counter;
-        }
-    }
-
     public int Count() => AllNodes.Count();
 
     IEnumerable<PositionNode> AllNodes => dict.Values;
@@ -264,7 +224,9 @@ class PositionNode
     public long Counter { get; private set; }
     public Position Position { get; }
     public (long, long) Wins { get; private set; }
-    public long WorldCount { get; private set; }
+    long WorldCount { get; set; }
+    public long WorldCountMultiplied => WorldCount * Counter;
+
 
     MovesDictionary dict;
 
@@ -298,11 +260,13 @@ class PositionNode
         if (nextCounts.Any(c => c == 0))
             return false;
 
-        // ########### What to do??
-        WorldCount = (long)Math.Pow(nextCounts.Sum(), Counter);
+        var nextCountsMultiplied = nextNodes.Select(n => n.WorldCountMultiplied);
 
-        var sum = string.Join(" + ", nextNodes.Select(n => n.WorldCount));
-        Console.WriteLine($"  World count {Position.Key}: ({sum}) * {Counter} = {WorldCount}");
+        // ########### What to do??
+        WorldCount = nextCountsMultiplied.Sum() * 9;
+
+        var sum = string.Join(" + ", nextCountsMultiplied);
+        Console.WriteLine($"  World count {Position.Key}: ({sum}) * 3 = {WorldCount * 3}");
         return true;
     }
 
